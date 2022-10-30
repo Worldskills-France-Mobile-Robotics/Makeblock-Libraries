@@ -2813,10 +2813,6 @@ void setup()
     encoders[i].setPulse(8);
     encoders[i].setRatio(46.67);
     encoders[i].setPosPid(1.8,0,1.2);
-    //encoders[i].setSpeedPid(0.2,0.1,0.02);
-    // encoders[i].setMotionMode(DIRECT_MODE);
-
-    // encoders[i].setSpeedPid(0.5, 0.5, 0.0008);
     encoders[i].setSpeedPid(0.8, 0.5, 0.001);
     encoders[i].setMotionMode(PID_MODE);
   }
