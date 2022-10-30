@@ -88,6 +88,8 @@
 #define ENCODER_POS_DEADBAND           10
 #define DECELERATION_DISTANCE_PITCH    6 
 
+#define DELTA_T_MILLISECS 40
+
 typedef struct
 {
   float P, I, D;
@@ -721,6 +723,7 @@ private:
    int16_t _Encoder_output;
    long _Measurement_speed_time;
    long _Encoder_move_time;
+   double _dt;
    bool _enabled;
    cb _callback;
 };

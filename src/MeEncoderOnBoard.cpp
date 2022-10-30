@@ -385,7 +385,9 @@ void MeEncoderOnBoard::pulsePosMinus(void)
  */
 void MeEncoderOnBoard::setCurrentSpeed(float speed)
 {
-  encode_structure.currentSpeed = speed;
+  // encode_structure.currentSpeed = speed;
+  float filter = 0.6;
+  encode_structure.currentSpeed = filter * encode_structure.currentSpeed + (1 - filter) * speed;
 }
 
 /**
@@ -924,12 +926,34 @@ int16_t MeEncoderOnBoard::speedWithoutPos(void)
 {
   float speed_error;
   float out_put_offset;
-  speed_error = encode_structure.currentSpeed - encode_structure.targetSpeed;
-  out_put_offset = encode_structure.PID_speed.P * speed_error;
+  // speed_error = encode_structure.currentSpeed - encode_structure.targetSpeed;
+  speed_error = encode_structure.targetSpeed - encode_structure.currentSpeed;
+  
+  // out_put_offset = encode_structure.PID_speed.P * speed_error;
+  // out_put_offset = constrain(out_put_offset,-25,25);
 
-  out_put_offset = constrain(out_put_offset,-25,25);
+  encode_structure.PID_speed.Integral += speed_error * _dt;
+  // encode_structure.PID_speed.Integral = constrain(encode_structure.PID_speed.Integral , -255, 255);
+
+  encode_structure.PID_speed.differential += (speed_error - encode_structure.PID_speed.last_error) / _dt;
+  // encode_structure.PID_speed.differential = constrain(encode_structure.PID_speed.differential , -255, 255);
+
+
+  out_put_offset = constrain(
+    encode_structure.PID_speed.P * speed_error,
+    -255,255);
+
+  out_put_offset += constrain(
+    encode_structure.PID_speed.I * encode_structure.PID_speed.Integral,
+    -255,255);
+  
+  out_put_offset += constrain(
+    encode_structure.PID_speed.D * encode_structure.PID_speed.differential,
+    -255,255);
+
+
   encode_structure.PID_speed.Output = _Encoder_output;
-  encode_structure.PID_speed.Output -= out_put_offset;
+  encode_structure.PID_speed.Output += out_put_offset;
 
   if(_Lock_flag == true)
   {
@@ -975,9 +999,10 @@ int16_t MeEncoderOnBoard::speedWithoutPos(void)
  */
 void MeEncoderOnBoard::encoderMove(void)
 {
-  if(millis() - _Encoder_move_time > 40)
+  if(millis() - _Encoder_move_time > DELTA_T_MILLISECS)
   {
     int16_t pwm_encoder = 0;
+    _dt = (millis() - _Encoder_move_time) / 1000.0;
     _Encoder_move_time = millis();
     if(encode_structure.motionState == MOTION_WITH_POS)
     {
