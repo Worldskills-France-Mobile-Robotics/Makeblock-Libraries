@@ -2,8 +2,8 @@
 * File Name          : Firmware_for_ROS2.ino
 * Author             : myan
 * Updated            : flochre
-* Version            : 0e.02.001
-* Date               : 03/19/2020
+* Version            : 0e.02.002
+* Date               : 01/12/2022
 * Description        : Firmware for Makeblock Electronic modules with Scratch.  
 * License            : CC-BY-SA 3.0
 * Copyright (C) 2013 - 2016 Maker Works Technology Co., Ltd. All right reserved.
@@ -29,6 +29,7 @@
 * Payton           2020/03/19     0e.01.017        Support raspberry pi python lib.
 * Payton           2020/04/01     0e.01.018        Repair encoder motor bug.
 * flochre          2022/10/30     0e.02.001        Make a real PID for motor driver
+* flochre          2022/12/01     0e.02.002        Add the reading of 2 motors at once
 **************************************************************************/
 #include <Arduino.h>
 #include <MeMegaPi.h>
@@ -236,6 +237,8 @@ float RELAX_ANGLE = -1;                    //Natural balance angle,should be adj
   #define ENCODER_BOARD_SET_CUR_POS_ZERO   0x04
   #define ENCODER_BOARD_CAR_POS_MOTION     0x05
   #define ENCODER_BOARD_POS_MOTION_MOVETO  0x06
+
+#define TWO_ENCODERS_POS_SPEED 63
 
 #define STEPPER_NEW            76
   //Secondary command
@@ -2153,6 +2156,19 @@ void readSensor(uint8_t device)
           {
             sendFloat(encoders[slot-1].getCurrentSpeed());
           }
+        }
+      }
+      break;
+    case TWO_ENCODERS_POS_SPEED:
+      {
+        if(port == 0)
+        {
+          int16_t slot_1 = readBuffer(7);
+          int16_t slot_2 = readBuffer(8);
+          sendLong(encoders[slot_1-1].getCurPos());
+          sendFloat(encoders[slot_1-1].getCurrentSpeed());
+          sendLong(encoders[slot_2-1].getCurPos());
+          sendFloat(encoders[slot_2-1].getCurrentSpeed());
         }
       }
       break;
