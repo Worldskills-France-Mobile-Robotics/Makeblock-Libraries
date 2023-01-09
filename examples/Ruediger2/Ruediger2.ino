@@ -27,8 +27,7 @@ MeStepperOnBoard steppers[4] = {MeStepperOnBoard(1),MeStepperOnBoard(2),MeSteppe
 
 MeUltrasonicSensor *us = NULL;     //PORT_7
 
-// MeGyro gyro_ext(0,0x68);           //external gryo sensor
-Imu my_imu;
+Imu *my_imu = NULL;
 
 MeEncoderOnBoard encoders[4];
 
@@ -1096,12 +1095,12 @@ void readSensor(uint8_t device)
         {
             if(us == NULL)
             {
-            us = new MeUltrasonicSensor(port);
+                us = new MeUltrasonicSensor(port);
             }
             else if(us->getPort() != port)
             {
-            delete us;
-            us = new MeUltrasonicSensor(port);
+                delete us;
+                us = new MeUltrasonicSensor(port);
             }
             value = (float)us->distanceCm();
             sendFloat(value);
@@ -1109,47 +1108,37 @@ void readSensor(uint8_t device)
         break;
         case IMU:
         {
-            sendDouble(my_imu.get_roll());
-            sendDouble(my_imu.get_pitch());
-            sendDouble(my_imu.get_yaw());
+            if(NULL != my_imu){
+                sendDouble(my_imu->get_roll());
+                sendDouble(my_imu->get_pitch());
+                sendDouble(my_imu->get_yaw());
 
-            sendDouble(my_imu.get_angular_velocity_x());
-            sendDouble(my_imu.get_angular_velocity_y());
-            sendDouble(my_imu.get_angular_velocity_z());
+                sendDouble(my_imu->get_angular_velocity_x());
+                sendDouble(my_imu->get_angular_velocity_y());
+                sendDouble(my_imu->get_angular_velocity_z());
 
-            sendDouble(my_imu.get_linear_acceleration_x());
-            sendDouble(my_imu.get_linear_acceleration_y());
-            sendDouble(my_imu.get_linear_acceleration_z());
+                sendDouble(my_imu->get_linear_acceleration_x());
+                sendDouble(my_imu->get_linear_acceleration_y());
+                sendDouble(my_imu->get_linear_acceleration_z());
+            }
 
         }
         break;
         case GYRO:
         {
-            uint8_t axis = readBuffer(7);
-            // if((port == 0) && (gyro_ext.getDevAddr() == 0x68))      //extern gyro
-            if((port == 0))      //extern gyro
-            {
-            if(axis==0)
-            {
-                // sendFloat(gyro_ext.getAngle(1));
-                // sendFloat(gyro_ext.getAngle(2));
-                // sendFloat(gyro_ext.getAngle(3));
-                sendFloat(my_imu.get_roll());
-                sendFloat(my_imu.get_pitch());
-                sendFloat(my_imu.get_yaw());
+            if(NULL != my_imu && port == my_imu->getPort()){
+                delete my_imu;
+                my_imu = new Imu(port);
+                my_imu->setup();
             }
-            else
-            {
-                // sendFloat(gyro_ext.getAngle(axis));
-                if(1 == axis){sendFloat(my_imu.get_roll());}
-                else if(2 == axis){sendFloat(my_imu.get_pitch());}
-                else if(3 == axis){sendFloat(my_imu.get_yaw());}
-                else {sendFloat(0.0);}
+
+            if(NULL == my_imu){
+                my_imu = new Imu(port);
+                my_imu->setup();
             }
-            }
-            else
-            {
-            sendFloat(0);
+
+            if(NULL != my_imu && port == (my_imu->getPort() + 0x10) ){
+                delete my_imu;
             }
         }
         break;
@@ -1336,10 +1325,6 @@ void setup()
     attachInterrupt(encoders[3].getIntNum(), isr_process_encoder4, RISING);
     
     delay(5);
-    // gyro_ext.begin();
-    my_imu.setup();
-    
-    delay(5);
     // configure LED for output
     pinMode(LED_PIN, OUTPUT);
 
@@ -1426,10 +1411,10 @@ void loop(){
         encoders[i].loop();
     }
 
-    if (millis() >= my_imu.read_timer() + TIMER_IMU){
-        my_imu.loop();
+    if (NULL != my_imu && millis() >= my_imu->read_timer() + TIMER_IMU){
+        my_imu->loop();
         // the readSensor fonction will send the data over serial
-        readSensor(IMU)
+        readSensor(IMU);
     }
 
     readSerial();

@@ -58,7 +58,7 @@ class Imu : public MePort
     void update(float tau = 0.5);
 
   public:
-    Imu(void);
+    Imu(uint8_t port = 0x6);
     unsigned long read_timer(void);
 
     double get_aSensitivity(void);
@@ -76,12 +76,6 @@ class Imu : public MePort
     double get_linear_acceleration_y(void);
     double get_linear_acceleration_z(void);
 
-    // uint8_t get_quaternion(geometry_msgs::Quaternion *q);
-    // uint8_t get_quaternion(geometry_msgs::Quaternion *q, double yaw, double pitch, double roll);
-    // uint8_t get_gravity(float *v, geometry_msgs::Quaternion *q);
-
-    // void setup(ros::NodeHandle *nh, char topic_name[] = "imu_data", char frame_id[] = "base_link");
-    // void setup(ros::NodeHandle *nh, char topic_name[] = "imu_data");
     void setup(void);
     void loop(void);
 };

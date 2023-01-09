@@ -1,6 +1,6 @@
 #include "imu.hpp"
 
-Imu::Imu(void) : MePort(0x6){
+Imu::Imu(uint8_t port) : MePort(port){
     timer = millis();
     device_address = MPU6050_DEFAULT_ADDRESS;
 
