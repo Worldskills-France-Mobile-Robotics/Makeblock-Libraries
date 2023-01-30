@@ -1,8 +1,8 @@
 /*************************************************************************
 * File Name          : Ruediger2.ino
 * Author             : flochre
-* Version            : 0.1
-* Date               : 09/01/2023
+* Version            : 0.2
+* Date               : 30/01/2023
 * Description        : Firmware for Makeblock Electronic modules with Scratch.  
 * License            : CC-BY-SA 3.0
 * Copyright (C) 2013 - 2016 Maker Works Technology Co., Ltd. All right reserved.
@@ -10,6 +10,7 @@
 * History:
 * <Author>         <Time>         <Version>        <Descr>
 * flochre          2023/01/09     0.1              First implementation with new IMU concept
+* flochre          2023/01/30     0.2              Add asynchronus concept for motor + clean code + update imu
 **************************************************************************/
 #include <Arduino.h>
 #include <MeMegaPi.h>
@@ -18,9 +19,6 @@
 #include <SoftwareSerial.h>
 
 #include "imu_libs/imu.hpp"
-
-#define DEBUG_INFO
-//#define DEBUG_INFO1
 
 MeMegaPiDCMotor dc;
 MeStepperOnBoard steppers[4] = {MeStepperOnBoard(1),MeStepperOnBoard(2),MeStepperOnBoard(3),MeStepperOnBoard(4)};
@@ -129,7 +127,10 @@ boolean start_flag = false;
 boolean move_flag = false;
 boolean blink_flag = false;
 
-String mVersion = "0.1";
+int16_t slot_1 = 0;
+int16_t slot_2 = 0;
+
+String mVersion = "0.2";
 //////////////////////////////////////////////////////////////////////////////////////
 float RELAX_ANGLE = -1;                    //Natural balance angle,should be adjustment according to your own car
 
@@ -230,6 +231,11 @@ PID  PID_angle, PID_speed, PID_turn;
 #define TIMER_LED 250
 unsigned long timer_led = 0;
 bool blinkState = false;
+
+// Defining the motor timer
+#define TIMER_MOTOR 100
+unsigned long timer_motor = 0;
+
 
 /************************************************************/
 /************************************************************/
@@ -1109,17 +1115,17 @@ void readSensor(uint8_t device)
         case IMU:
         {
             if(NULL != my_imu){
-                sendDouble(my_imu->get_roll());
-                sendDouble(my_imu->get_pitch());
-                sendDouble(my_imu->get_yaw());
+                sendFloat(my_imu->get_roll());
+                sendFloat(my_imu->get_pitch());
+                sendFloat(my_imu->get_yaw());
 
-                sendDouble(my_imu->get_angular_velocity_x());
-                sendDouble(my_imu->get_angular_velocity_y());
-                sendDouble(my_imu->get_angular_velocity_z());
+                sendFloat(my_imu->get_angular_velocity_x());
+                sendFloat(my_imu->get_angular_velocity_y());
+                sendFloat(my_imu->get_angular_velocity_z());
 
-                sendDouble(my_imu->get_linear_acceleration_x());
-                sendDouble(my_imu->get_linear_acceleration_y());
-                sendDouble(my_imu->get_linear_acceleration_z());
+                sendFloat(my_imu->get_linear_acceleration_x());
+                sendFloat(my_imu->get_linear_acceleration_y());
+                sendFloat(my_imu->get_linear_acceleration_z());
             }
 
         }
@@ -1191,7 +1197,7 @@ void readSensor(uint8_t device)
         break;
         case TIMER:
         {
-            sendFloat((float)currentTime);
+          sendFloat((float)currentTime);
         }
         break;
         case ENCODER_BOARD:
@@ -1213,15 +1219,20 @@ void readSensor(uint8_t device)
         break;
         case TWO_ENCODERS_POS_SPEED:
         {
-            if(port == 0)
-            {
-            int16_t slot_1 = readBuffer(7);
-            int16_t slot_2 = readBuffer(8);
+          if(port == 0x46)
+          {
+            slot_1 = readBuffer(7);
+            slot_2 = readBuffer(8);
             sendLong(encoders[slot_1-1].getCurPos());
             sendFloat(encoders[slot_1-1].getCurrentSpeed());
             sendLong(encoders[slot_2-1].getCurPos());
             sendFloat(encoders[slot_2-1].getCurrentSpeed());
-            }
+          } else {
+            sendLong(encoders[slot_1-1].getCurPos());
+            sendFloat(encoders[slot_1-1].getCurrentSpeed());
+            sendLong(encoders[slot_2-1].getCurPos());
+            sendFloat(encoders[slot_2-1].getCurrentSpeed());
+          }
         }
         break;
         case COMMON_COMMONCMD:
@@ -1407,14 +1418,25 @@ void setup()
 void loop(){
 
     for(int i=0;i<4;i++){
-        steppers[i].update();
-        encoders[i].loop();
+      steppers[i].update();
+      encoders[i].loop();
+    }
+
+    if (millis() >= timer_motor + TIMER_MOTOR){
+      timer_motor = millis();
+      // the readSensor fonction will send the data over serial
+      if( 0 != slot_1 && 0 != slot_2){
+        readSensor(TWO_ENCODERS_POS_SPEED);
+        writeEnd();
+      }
     }
 
     if (NULL != my_imu && millis() >= my_imu->read_timer() + TIMER_IMU){
-        my_imu->loop();
-        // the readSensor fonction will send the data over serial
-        readSensor(IMU);
+      my_imu->loop();
+      // the readSensor fonction will send the data over serial
+      readSensor(IMU);
+      writeEnd();
+      // Serial.println(my_imu->get_yaw() * 180 / 3.14);
     }
 
     readSerial();

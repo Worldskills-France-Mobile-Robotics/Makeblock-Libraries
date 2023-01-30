@@ -4,6 +4,9 @@ Imu::Imu(uint8_t port) : MePort(port){
     timer = millis();
     device_address = MPU6050_DEFAULT_ADDRESS;
 
+    first_loop = true;
+    set_gyro_angles = false;
+
     #ifdef ME_PORT_DEFINED
     _AD0 = s1;
     _INT = s2;
@@ -18,10 +21,10 @@ void Imu::begin(uint8_t accel_config, uint8_t gyro_config) {
     aSensitivity = set_aSensitivity(accel_config);
     gSensitivity = set_gSensitivity(gyro_config);
 
+    first_loop = true;
     set_gyro_angles = false;
     angle_pitch = 0, angle_yaw = 0, angle_roll = 0;
     angle_pitch_acc = 0, angle_yaw_acc = 0, angle_roll_acc = 0;
-
 
     Wire.begin();
 
@@ -49,14 +52,14 @@ void Imu::calibrate(uint16_t calibration_iterations){
 
     for (size_t i = 0; i < calibration_iterations; i++) {
         read_mpu_6050_data();
-        acc_x_cal += acc_x;
-        acc_y_cal += acc_y;
-        acc_z_cal += acc_z;
+        acc_x_cal += acc_x_raw;
+        acc_y_cal += acc_y_raw;
+        acc_z_cal += acc_z_raw;
 
-        gyro_x_cal += gyro_x;
-        gyro_y_cal += gyro_y;
-        gyro_z_cal += gyro_z;
-        delay(3);
+        gyro_x_cal += gyro_x_raw;
+        gyro_y_cal += gyro_y_raw;
+        gyro_z_cal += gyro_z_raw;
+        delay(4);
     }
   
     acc_x_cal /= calibration_iterations;
@@ -75,22 +78,22 @@ void Imu::read_mpu_6050_data(void){
         return;
     }
 
-    acc_x   = ( (i2cData[0] << 8) | i2cData[1] );
-    acc_y   = ( (i2cData[2] << 8) | i2cData[3] );
-    acc_z   = ( (i2cData[4] << 8) | i2cData[5] );
+    acc_x_raw   = ( (i2cData[0] << 8) | i2cData[1] );
+    acc_y_raw   = ( (i2cData[2] << 8) | i2cData[3] );
+    acc_z_raw   = ( (i2cData[4] << 8) | i2cData[5] );
 
     temperature = ( (i2cData[6] << 8) | i2cData[7] );
 
-    gyro_x  = ( (i2cData[8] << 8)  | i2cData[9]  );
-    gyro_y  = ( (i2cData[10] << 8) | i2cData[11] );
-    gyro_z  = ( (i2cData[12] << 8) | i2cData[13] );
+    gyro_x_raw  = ( (i2cData[8] << 8)  | i2cData[9]  );
+    gyro_y_raw  = ( (i2cData[10] << 8) | i2cData[11] );
+    gyro_z_raw  = ( (i2cData[12] << 8) | i2cData[13] );
 }
 
-double Imu::get_aSensitivity(void){
-    return gSensitivity;
+float Imu::get_aSensitivity(void){
+    return aSensitivity;
 }
 
-double Imu::set_aSensitivity(uint8_t accel_config){
+float Imu::set_aSensitivity(uint8_t accel_config){
     switch (accel_config) {
         case MPU6050_ACCEL_FS_2:
             aSensitivity = 16384.0;
@@ -118,11 +121,11 @@ double Imu::set_aSensitivity(uint8_t accel_config){
     return aSensitivity;
 }
 
-double Imu::get_gSensitivity(void){
+float Imu::get_gSensitivity(void){
     return gSensitivity;
 }
 
-double Imu::set_gSensitivity(uint8_t gyro_config){
+float Imu::set_gSensitivity(uint8_t gyro_config){
     switch (gyro_config)
     {
         case MPU6050_GYRO_FS_250:
@@ -162,22 +165,30 @@ static inline int8_t sgn(int val) {
 }
 
 void Imu::update(float tau) {
-    static unsigned long	last_time = micros();
-    double dt, filter_coefficient;
+    // static unsigned long	last_time = micros();
+    float dt, filter_coefficient;
     
-    dt = (double)(micros() - last_time) * 0.000001; // dt in secondes
+    if(first_loop){
+        first_loop = false;
+        dt = 0.0;
+    } else {
+        dt = (float)(micros() - last_time) * 0.000001; // dt in secondes
+    }
     last_time = micros();
     read_mpu_6050_data();
 
-    gyro_x -= gyro_x_cal;   //Subtract the offset calibration value from the raw gyro_x value
-    gyro_y -= gyro_y_cal;   //Subtract the offset calibration value from the raw gyro_y value
-    gyro_z -= gyro_z_cal;   //Subtract the offset calibration value from the raw gyro_z value
+    gyro_x_raw -= gyro_x_cal;   //Subtract the offset calibration value from the raw gyro_x value
+    gyro_y_raw -= gyro_y_cal;   //Subtract the offset calibration value from the raw gyro_y value
+    gyro_z_raw -= gyro_z_cal;   //Subtract the offset calibration value from the raw gyro_z value
 
-    gyro_x /= gSensitivity_si;
-    gyro_y /= gSensitivity_si;
-    gyro_z /= gSensitivity_si;
+    gyro_x = (float) gyro_x_raw / gSensitivity_si;
+    gyro_y = (float) gyro_y_raw / gSensitivity_si;
+    gyro_z = (float) gyro_z_raw / gSensitivity_si;
 
-    // angle_yaw += gyro_z / gSensitivity_si * dt;
+    acc_x = (float) acc_x_raw / aSensitivity_si;
+    acc_y = (float) acc_y_raw / aSensitivity_si;
+    acc_z = (float) acc_z_raw / aSensitivity_si;
+
     angle_yaw += gyro_z * dt;
     angle_yaw = angle_yaw - (2 * M_PI) * floor(angle_yaw / (2 * M_PI));
     // to get yaw between [-M_PI; M_PI]
@@ -196,29 +207,10 @@ void Imu::update(float tau) {
     angle_pitch -= angle_roll * sin(gyro_z * dt);
     angle_roll  += angle_pitch * sin(gyro_z * dt);
 
-    // //Accelerometer angle calculations
-    acc_total_vector = sqrt((acc_x*acc_x)+(acc_y*acc_y)+(acc_z*acc_z));
-    angle_pitch_acc = -asin((float)acc_x/acc_total_vector);      // Calculate the pitch angle based on acceleration
-    angle_roll_acc  =  asin((float)acc_y/acc_total_vector);      // Calculate the roll angle based on acceleration
-    
-    // Set acceleration values
-    if(set_gyro_angles){
-        if (0x1 == DELETE_GRAVITY) {
-        acc_x -= acc_x_cal + gravity_calib[0] ;
-        acc_y -= acc_y_cal + gravity_calib[1] ;
-        acc_z -= acc_z_cal + gravity_calib[2] ; 
-        }
-
-        // if (0x0 == DELETE_GRAVITY) {
-        //   acc_x -= acc_x_cal;
-        //   acc_y -= acc_y_cal;
-        //   acc_z -= acc_z_cal; 
-        // }
-    }
-
-    acc_x /= aSensitivity_si;
-    acc_y /= aSensitivity_si;
-    acc_z /= aSensitivity_si;
+    // Accelerometer angle calculations
+    acc_total_vector = sqrt((acc_x_raw*acc_x_raw)+(acc_y_raw*acc_y_raw)+(acc_z_raw*acc_z_raw));
+    angle_pitch_acc = -asin((float)acc_x_raw/acc_total_vector);      // Calculate the pitch angle based on acceleration
+    angle_roll_acc  =  asin((float)acc_y_raw/acc_total_vector);      // Calculate the roll angle based on acceleration
 
     /*
         complementary filter
@@ -245,21 +237,21 @@ void Imu::update(float tau) {
     filter_coefficient  = tau / (tau + dt);
     angle_pitch_output  = angle_pitch_output * filter_coefficient + angle_pitch * (1 - filter_coefficient);   //Take 90% of the output pitch value and add 10% of the raw pitch value
     angle_roll_output   = angle_roll_output * filter_coefficient + angle_roll * (1 - filter_coefficient);
-    // angle_yaw_output    = sgn(angle_yaw) * (abs(angle_yaw_output) * filter_coefficient + abs(angle_yaw) * (1 - filter_coefficient));
+    // angle_yaw_output   = angle_yaw_output * filter_coefficient + angle_yaw * (1 - filter_coefficient);
     angle_yaw_output    = angle_yaw;
 }
 
-double Imu::get_roll(void)  {return angle_roll_output;}
-double Imu::get_pitch(void) {return angle_pitch_output;}
-double Imu::get_yaw(void)   {return angle_yaw_output;}
+float Imu::get_roll(void)  {return angle_roll_output;}
+float Imu::get_pitch(void) {return angle_pitch_output;}
+float Imu::get_yaw(void)   {return angle_yaw_output;}
 
-double Imu::get_angular_velocity_x(void) {return gyro_x;}
-double Imu::get_angular_velocity_y(void) {return gyro_y;}
-double Imu::get_angular_velocity_z(void) {return gyro_z;}
+float Imu::get_angular_velocity_x(void) {return gyro_x;}
+float Imu::get_angular_velocity_y(void) {return gyro_y;}
+float Imu::get_angular_velocity_z(void) {return gyro_z;}
 
-double Imu::get_linear_acceleration_x(void) {return acc_x;}
-double Imu::get_linear_acceleration_y(void) {return acc_y;}
-double Imu::get_linear_acceleration_z(void) {return acc_z;}
+float Imu::get_linear_acceleration_x(void) {return acc_x;}
+float Imu::get_linear_acceleration_y(void) {return acc_y;}
+float Imu::get_linear_acceleration_z(void) {return acc_z;}
 
 void Imu::setup(void){
     // Init Gyroscope
