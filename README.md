@@ -1,4 +1,4 @@
-# ruediger2_anduino Library v0.2
+# ruediger2_anduino Library v0.3
 
 Arduino Library for Ruediger2 
 This aim to use the Makeblock Hardware to use it with ROS2
