@@ -1,7 +1,7 @@
 /*************************************************************************
 * File Name          : Ruediger2.ino
 * Author             : flochre
-* Version            : 0.2
+* Version            : 0.3
 * Date               : 30/01/2023
 * Description        : Firmware for Makeblock Electronic modules with Scratch.  
 * License            : CC-BY-SA 3.0
@@ -11,6 +11,7 @@
 * <Author>         <Time>         <Version>        <Descr>
 * flochre          2023/01/09     0.1              First implementation with new IMU concept
 * flochre          2023/01/30     0.2              Add asynchronus concept for motor + clean code + update imu
+* flochre          2023/01/31     0.3              Bump to 0.3 with changes in the repo structure
 **************************************************************************/
 #include <Arduino.h>
 #include <MeMegaPi.h>
@@ -130,7 +131,7 @@ boolean blink_flag = false;
 int16_t slot_1 = 0;
 int16_t slot_2 = 0;
 
-String mVersion = "0.2";
+String mVersion = "0.3";
 //////////////////////////////////////////////////////////////////////////////////////
 float RELAX_ANGLE = -1;                    //Natural balance angle,should be adjustment according to your own car
 
