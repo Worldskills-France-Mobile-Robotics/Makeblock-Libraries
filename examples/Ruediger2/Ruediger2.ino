@@ -1,8 +1,8 @@
 /*************************************************************************
 * File Name          : Ruediger2.ino
 * Author             : flochre
-* Version            : 0.3
-* Date               : 30/01/2023
+* Version            : 0.4
+* Date               : 9/05/2023
 * Description        : Firmware for Makeblock Electronic modules with Scratch.  
 * License            : CC-BY-SA 3.0
 * Copyright (C) 2013 - 2016 Maker Works Technology Co., Ltd. All right reserved.
@@ -12,6 +12,7 @@
 * flochre          2023/01/09     0.1              First implementation with new IMU concept
 * flochre          2023/01/30     0.2              Add asynchronus concept for motor + clean code + update imu
 * flochre          2023/01/31     0.3              Bump to 0.3 with changes in the repo structure
+* flochre          2023/05/09     0.4              Add Ultrasonic sensor
 **************************************************************************/
 #include <Arduino.h>
 #include <MeMegaPi.h>
@@ -26,6 +27,14 @@ MeStepperOnBoard steppers[4] = {MeStepperOnBoard(1),MeStepperOnBoard(2),MeSteppe
 
 MeUltrasonicSensor *us = NULL;     //PORT_7
 
+MeUltrasonicSensor * my_uss[4];
+for(int i=0;i<4;i++){
+  my_uss[i] = NULL;
+}
+// MeUltrasonicSensor *my_uss_1 = NULL;     //PORT_5
+// MeUltrasonicSensor *my_uss_2 = NULL;     //PORT_6
+// MeUltrasonicSensor *my_uss_3 = NULL;     //PORT_7
+// MeUltrasonicSensor *my_uss_4 = NULL;     //PORT_8
 Imu *my_imu = NULL;
 
 MeEncoderOnBoard encoders[4];
@@ -137,6 +146,10 @@ float RELAX_ANGLE = -1;                    //Natural balance angle,should be adj
 
 #define VERSION                0
 #define ULTRASONIC_SENSOR      1
+#define ULTRASONIC_SENSOR_P5   101
+#define ULTRASONIC_SENSOR_P6   102
+#define ULTRASONIC_SENSOR_P7   103
+#define ULTRASONIC_SENSOR_P8   104
 #define TEMPERATURE_SENSOR     2
 #define LIGHT_SENSOR           3
 #define POTENTIONMETER         4
@@ -237,6 +250,12 @@ bool blinkState = false;
 #define TIMER_MOTOR 100
 unsigned long timer_motor = 0;
 
+// Defining the ultrasonic variables
+#define TIMER_USS 100
+unsigned long timer_uss[4];
+for(int i=0;i<4;i++){
+    timer_uss[i] = 0;
+}
 
 /************************************************************/
 /************************************************************/
@@ -1438,6 +1457,15 @@ void loop(){
       readSensor(IMU);
       writeEnd();
       // Serial.println(my_imu->get_yaw() * 180 / 3.14);
+    }
+
+    for(int i=0;i<4;i++){
+
+        if (NULL != my_uss[i] && millis() >= timer_uss[i] + TIMER_USS){
+            // the readSensor fonction will send the data over serial
+            readSensor(ULTRASONIC_SENSOR_P5 + i);
+            writeEnd();
+        }
     }
 
     readSerial();
