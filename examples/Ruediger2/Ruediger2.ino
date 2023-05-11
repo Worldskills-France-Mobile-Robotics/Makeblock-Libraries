@@ -28,9 +28,6 @@ MeStepperOnBoard steppers[4] = {MeStepperOnBoard(1),MeStepperOnBoard(2),MeSteppe
 MeUltrasonicSensor *us = NULL;     //PORT_7
 
 MeUltrasonicSensor * my_uss[4];
-for(int i=0;i<4;i++){
-  my_uss[i] = NULL;
-}
 // MeUltrasonicSensor *my_uss_1 = NULL;     //PORT_5
 // MeUltrasonicSensor *my_uss_2 = NULL;     //PORT_6
 // MeUltrasonicSensor *my_uss_3 = NULL;     //PORT_7
@@ -253,9 +250,6 @@ unsigned long timer_motor = 0;
 // Defining the ultrasonic variables
 #define TIMER_USS 100
 unsigned long timer_uss[4];
-for(int i=0;i<4;i++){
-    timer_uss[i] = 0;
-}
 
 /************************************************************/
 /************************************************************/
@@ -1348,6 +1342,13 @@ void setup()
 
     for(int i=0;i<4;i++){
         encoders[i].reset(i+1);
+    }
+
+    for(int i=0;i<4;i++){
+        my_uss[i] = NULL;
+    }
+    for(int i=0;i<4;i++){
+        timer_uss[i] = 0;
     }
 
     attachInterrupt(encoders[0].getIntNum(), isr_process_encoder1, RISING);
