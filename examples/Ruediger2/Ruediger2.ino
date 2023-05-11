@@ -1113,19 +1113,39 @@ void readSensor(uint8_t device)
     {
         case ULTRASONIC_SENSOR:
         {
-            if(us == NULL)
+            uint8_t i = port - 1 - 4;
+            // if(us == NULL)
+            if(NULL == my_uss[i])
             {
-                us = new MeUltrasonicSensor(port);
+                my_uss[i] = new MeUltrasonicSensor(port);
             }
-            else if(us->getPort() != port)
+            else if(my_uss[i]->getPort() != port)
             {
-                delete us;
-                us = new MeUltrasonicSensor(port);
+                // this should never happens
+                delete my_uss[i];
+                my_uss[i] = new MeUltrasonicSensor(port);
             }
-            value = (float)us->distanceCm();
+            value = (float)my_uss[i]->distanceCm();
             sendFloat(value);
         }
         break;
+        case ULTRASONIC_SENSOR_P5:
+            value = (float)my_uss[0]->distanceCm();
+            sendFloat(value);
+        break;
+        case ULTRASONIC_SENSOR_P6:
+            value = (float)my_uss[1]->distanceCm();
+            sendFloat(value);
+        break;
+        case ULTRASONIC_SENSOR_P7:
+            value = (float)my_uss[2]->distanceCm();
+            sendFloat(value);
+        break;
+        case ULTRASONIC_SENSOR_P8:
+            value = (float)my_uss[3]->distanceCm();
+            sendFloat(value);
+        break;
+
         case IMU:
         {
             if(NULL != my_imu){
