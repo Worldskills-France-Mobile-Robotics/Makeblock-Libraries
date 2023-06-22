@@ -1,8 +1,8 @@
 /*************************************************************************
 * File Name          : Ruediger2.ino
 * Author             : flochre
-* Version            : 0.4
-* Date               : 9/05/2023
+* Version            : 0.5
+* Date               : 22/06/2023
 * Description        : Firmware for Makeblock Electronic modules with Scratch.  
 * License            : CC-BY-SA 3.0
 * Copyright (C) 2013 - 2016 Maker Works Technology Co., Ltd. All right reserved.
@@ -13,6 +13,7 @@
 * flochre          2023/01/30     0.2              Add asynchronus concept for motor + clean code + update imu
 * flochre          2023/01/31     0.3              Bump to 0.3 with changes in the repo structure
 * flochre          2023/05/09     0.4              Add Ultrasonic sensor
+* flochre          2023/06/22     0.5              Ultrasonic sensor working with the serial_megapi
 **************************************************************************/
 #include <Arduino.h>
 #include <MeMegaPi.h>
@@ -137,7 +138,7 @@ boolean blink_flag = false;
 int16_t slot_1 = 0;
 int16_t slot_2 = 0;
 
-String mVersion = "0.3";
+String mVersion = "0.5";
 //////////////////////////////////////////////////////////////////////////////////////
 float RELAX_ANGLE = -1;                    //Natural balance angle,should be adjustment according to your own car
 
