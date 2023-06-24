@@ -1,8 +1,8 @@
 /*************************************************************************
 * File Name          : Ruediger2.ino
 * Author             : flochre
-* Version            : 0.3
-* Date               : 30/01/2023
+* Version            : 0.5
+* Date               : 22/06/2023
 * Description        : Firmware for Makeblock Electronic modules with Scratch.  
 * License            : CC-BY-SA 3.0
 * Copyright (C) 2013 - 2016 Maker Works Technology Co., Ltd. All right reserved.
@@ -12,6 +12,8 @@
 * flochre          2023/01/09     0.1              First implementation with new IMU concept
 * flochre          2023/01/30     0.2              Add asynchronus concept for motor + clean code + update imu
 * flochre          2023/01/31     0.3              Bump to 0.3 with changes in the repo structure
+* flochre          2023/05/09     0.4              Add Ultrasonic sensor
+* flochre          2023/06/22     0.5              Ultrasonic sensor working with the serial_megapi
 **************************************************************************/
 #include <Arduino.h>
 #include <MeMegaPi.h>
@@ -26,6 +28,11 @@ MeStepperOnBoard steppers[4] = {MeStepperOnBoard(1),MeStepperOnBoard(2),MeSteppe
 
 MeUltrasonicSensor *us = NULL;     //PORT_7
 
+MeUltrasonicSensor * my_uss[4];
+// MeUltrasonicSensor *my_uss_1 = NULL;     //PORT_5
+// MeUltrasonicSensor *my_uss_2 = NULL;     //PORT_6
+// MeUltrasonicSensor *my_uss_3 = NULL;     //PORT_7
+// MeUltrasonicSensor *my_uss_4 = NULL;     //PORT_8
 Imu *my_imu = NULL;
 
 MeEncoderOnBoard encoders[4];
@@ -131,12 +138,16 @@ boolean blink_flag = false;
 int16_t slot_1 = 0;
 int16_t slot_2 = 0;
 
-String mVersion = "0.3";
+String mVersion = "0.5";
 //////////////////////////////////////////////////////////////////////////////////////
 float RELAX_ANGLE = -1;                    //Natural balance angle,should be adjustment according to your own car
 
 #define VERSION                0
 #define ULTRASONIC_SENSOR      1
+#define ULTRASONIC_SENSOR_P5   101
+#define ULTRASONIC_SENSOR_P6   102
+#define ULTRASONIC_SENSOR_P7   103
+#define ULTRASONIC_SENSOR_P8   104
 #define TEMPERATURE_SENSOR     2
 #define LIGHT_SENSOR           3
 #define POTENTIONMETER         4
@@ -237,6 +248,9 @@ bool blinkState = false;
 #define TIMER_MOTOR 100
 unsigned long timer_motor = 0;
 
+// Defining the ultrasonic variables
+#define TIMER_USS 100
+unsigned long timer_uss[4];
 
 /************************************************************/
 /************************************************************/
@@ -1100,19 +1114,43 @@ void readSensor(uint8_t device)
     {
         case ULTRASONIC_SENSOR:
         {
-            if(us == NULL)
+            // USS sensor can be put from port 5 to 8
+            // Table start with 0
+            // We let - 1 - 4 to distinguish between 
+            // the value to be at the start of the table 
+            // and the port numbers
+            uint8_t i = port - 1 - 4;
+            if(NULL == my_uss[i])
             {
-                us = new MeUltrasonicSensor(port);
+                my_uss[i] = new MeUltrasonicSensor(port);
             }
-            else if(us->getPort() != port)
+            else if(my_uss[i]->getPort() != port)
             {
-                delete us;
-                us = new MeUltrasonicSensor(port);
+                // this should never happens
+                delete my_uss[i];
+                my_uss[i] = new MeUltrasonicSensor(port);
             }
-            value = (float)us->distanceCm();
+            value = (float)my_uss[i]->distanceCm();
             sendFloat(value);
         }
         break;
+        case ULTRASONIC_SENSOR_P5:
+            value = (float)my_uss[0]->distanceCm();
+            sendFloat(value);
+        break;
+        case ULTRASONIC_SENSOR_P6:
+            value = (float)my_uss[1]->distanceCm();
+            sendFloat(value);
+        break;
+        case ULTRASONIC_SENSOR_P7:
+            value = (float)my_uss[2]->distanceCm();
+            sendFloat(value);
+        break;
+        case ULTRASONIC_SENSOR_P8:
+            value = (float)my_uss[3]->distanceCm();
+            sendFloat(value);
+        break;
+
         case IMU:
         {
             if(NULL != my_imu){
@@ -1331,6 +1369,13 @@ void setup()
         encoders[i].reset(i+1);
     }
 
+    for(int i=0;i<4;i++){
+        my_uss[i] = NULL;
+    }
+    for(int i=0;i<4;i++){
+        timer_uss[i] = 0;
+    }
+
     attachInterrupt(encoders[0].getIntNum(), isr_process_encoder1, RISING);
     attachInterrupt(encoders[1].getIntNum(), isr_process_encoder2, RISING);
     attachInterrupt(encoders[2].getIntNum(), isr_process_encoder3, RISING);
@@ -1438,6 +1483,17 @@ void loop(){
       readSensor(IMU);
       writeEnd();
       // Serial.println(my_imu->get_yaw() * 180 / 3.14);
+    }
+
+    for(int i=0;i<4;i++){
+        if (NULL != my_uss[i] && millis() >= timer_uss[i] + TIMER_USS){
+            timer_uss[i] = millis();
+            // the readSensor fonction will send the data over serial
+            uint8_t port = i + 4 + 1;
+            command_index = (uint8_t)((port << 4) + (ULTRASONIC_SENSOR & 0xf));
+            readSensor(ULTRASONIC_SENSOR_P5 + i);
+            writeEnd();
+        }
     }
 
     readSerial();
