@@ -1114,8 +1114,12 @@ void readSensor(uint8_t device)
     {
         case ULTRASONIC_SENSOR:
         {
+            // USS sensor can be put from port 5 to 8
+            // Table start with 0
+            // We let - 1 - 4 to distinguish between 
+            // the value to be at the start of the table 
+            // and the port numbers
             uint8_t i = port - 1 - 4;
-            // if(us == NULL)
             if(NULL == my_uss[i])
             {
                 my_uss[i] = new MeUltrasonicSensor(port);
