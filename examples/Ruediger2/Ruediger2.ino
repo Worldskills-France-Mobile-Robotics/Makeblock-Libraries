@@ -26,13 +26,9 @@
 MeMegaPiDCMotor dc;
 MeStepperOnBoard steppers[4] = {MeStepperOnBoard(1),MeStepperOnBoard(2),MeStepperOnBoard(3),MeStepperOnBoard(4)};
 
-MeUltrasonicSensor *us = NULL;     //PORT_7
+MeUltrasonicSensor *us = NULL;     // PORT_7
 
-MeUltrasonicSensor * my_uss[4];
-// MeUltrasonicSensor *my_uss_1 = NULL;     //PORT_5
-// MeUltrasonicSensor *my_uss_2 = NULL;     //PORT_6
-// MeUltrasonicSensor *my_uss_3 = NULL;     //PORT_7
-// MeUltrasonicSensor *my_uss_4 = NULL;     //PORT_8
+MeUltrasonicSensor * my_uss[4];    // PORT_5 PORT_6 PORT_7 PORT_8
 Imu *my_imu = NULL;
 
 MeEncoderOnBoard encoders[4];
