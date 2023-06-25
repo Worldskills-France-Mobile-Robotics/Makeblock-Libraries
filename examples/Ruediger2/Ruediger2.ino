@@ -1482,18 +1482,18 @@ void loop(){
       // the readSensor fonction will send the data over serial
       readSensor(IMU);
       writeEnd();
-      // Serial.println(my_imu->get_yaw() * 180 / 3.14);
+      // Serial.println(my_imu->get_yaw() * 180 / 3.14);      
     }
 
     for(int i=0;i<4;i++){
-        if (NULL != my_uss[i] && millis() >= timer_uss[i] + TIMER_USS){
-            timer_uss[i] = millis();
-            // the readSensor fonction will send the data over serial
-            uint8_t port = i + 4 + 1;
-            command_index = (uint8_t)((port << 4) + (ULTRASONIC_SENSOR & 0xf));
-            readSensor(ULTRASONIC_SENSOR_P5 + i);
-            writeEnd();
-        }
+      if (NULL != my_uss[i] && millis() >= timer_uss[i] + TIMER_USS){
+        timer_uss[i] = millis();
+        // the readSensor fonction will send the data over serial
+        uint8_t port = i + 4 + 1;
+        command_index = (uint8_t)((port << 4) + (ULTRASONIC_SENSOR & 0xf));
+        readSensor(ULTRASONIC_SENSOR_P5 + i);
+        writeEnd();
+      }
     }
 
     readSerial();
