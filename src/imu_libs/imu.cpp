@@ -31,14 +31,9 @@ float Imu::get_linear_acceleration_y(void) {return aaReal.y;}
 float Imu::get_linear_acceleration_z(void) {return aaReal.z;}
 
 void Imu::setup(void){
-    // Init Gyroscope
-    // begin(MPU6050_ACCEL_FS_2, MPU6050_GYRO_FS_500);
-
     Wire.begin();
-    // Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties
 
     mpu.initialize();
-
     devStatus = mpu.dmpInitialize();
 
     if (devStatus == 0) {
@@ -48,12 +43,12 @@ void Imu::setup(void){
         mpu.PrintActiveOffsets();
 
         // turn on the DMP, now that it's ready
-        Serial.println(F("Enabling DMP..."));
+        // Serial.println(F("Enabling DMP..."));
         mpu.setDMPEnabled(true);
         mpuIntStatus = mpu.getIntStatus();
 
         // set our DMP Ready flag so the main loop() function knows it's okay to use it
-        Serial.println(F("DMP ready! Waiting for first interrupt..."));
+        // Serial.println(F("DMP ready! Waiting for first interrupt..."));
         dmpReady = true;
 
         // get expected DMP packet size for later comparison
@@ -63,9 +58,10 @@ void Imu::setup(void){
         // 1 = initial memory load failed
         // 2 = DMP configuration updates failed
         // (if it's going to break, usually the code will be 1)
-        Serial.print(F("DMP Initialization failed (code "));
-        Serial.print(devStatus);
-        Serial.println(F(")"));
+        // Serial.print(F("DMP Initialization failed (code "));
+        // Serial.print(devStatus);
+        // Serial.println(F(")"));
+        dmpReady = false;
     }
 
 }
@@ -83,5 +79,4 @@ void Imu::loop(void) {
         mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
         // mpu.dmpGetLinearAccelInWorld(&aaWorld, &aaReal, &q);
     }
-    // update();
 }
