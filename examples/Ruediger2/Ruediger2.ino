@@ -1475,11 +1475,12 @@ void loop(){
     }
 
     if (NULL != my_imu && millis() >= my_imu->read_timer() + TIMER_IMU){
-      my_imu->loop();
-      // the readSensor fonction will send the data over serial
-      readSensor(IMU);
-      writeEnd();
-      // Serial.println(my_imu->get_yaw() * 180 / 3.14);      
+      if(my_imu->loop()){
+        // the readSensor fonction will send the data over serial
+        readSensor(IMU);
+        writeEnd();
+        // Serial.println(my_imu->get_yaw() * 180 / 3.14);      
+      }
     }
 
     for(int i=0;i<4;i++){

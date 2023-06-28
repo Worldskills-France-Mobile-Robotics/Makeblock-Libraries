@@ -4,9 +4,10 @@
 #include "Wire.h"
 // #include "I2Cdev.h"
 #include "I2Cdev/I2Cdev.h"
-#include "MPU6050/MPU6050_6Axis_MotionApps20.h"
+// #include "MPU6050/MPU6050_6Axis_MotionApps20.h"
+#include "MPU6050/MPU6050_6Axis_MotionApps612.h"
 
-#define TIMER_IMU 52        // The MPU is geting data every 4ms a multiple of 4 is better
+#define TIMER_IMU 80        // The MPU is geting data every 4ms a multiple of 4 is better
 #define I2C_BUFFER_SIZE 14
 
 #include "MeConfig.h"
@@ -69,7 +70,7 @@ class Imu : public MePort
     float get_linear_acceleration_z(void);
 
     void setup(void);
-    void loop(void);
+    bool loop(void);
 };
 
 #endif // IMU_HPP
