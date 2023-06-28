@@ -29,6 +29,9 @@ class Imu : public MePort
     uint8_t device_address;
     unsigned long timer;
 
+    float  aSensitivity, aSensitivity_si; /* for 2g, check data sheet AFS_SEL = 0 Register 28 (0x1c) */
+    float  gSensitivity, gSensitivity_si; /* for 500 deg/s, check data sheet */
+
     // class default I2C address is 0x68
     // specific I2C addresses may be passed as a parameter here
     // AD0 low = 0x68 (default for SparkFun breakout and InvenSense evaluation board)
@@ -40,8 +43,7 @@ class Imu : public MePort
     uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
     uint8_t devStatus;      // return status after each device operation (0 = success, !0 = error)
     uint16_t packetSize;    // expected DMP packet size (default is 42 bytes)
-    uint16_t fifoCount;     // count of all bytes currently in FIFO
-    uint8_t fifoBuffer[64]; // FIFO storage buffer
+    uint8_t lastPacket[64]; // FIFO storage buffer
 
     // orientation/motion vars
     Quaternion q;           // [w, x, y, z]         quaternion container
@@ -50,12 +52,21 @@ class Imu : public MePort
     VectorInt16 aaReal;     // [x, y, z]            gravity-free accel sensor measurements
     // VectorInt16 aaWorld;    // [x, y, z]            world-frame accel sensor measurements
     VectorFloat gravity;    // [x, y, z]            gravity vector
-    // float euler[3];         // [psi, theta, phi]    Euler angle container
     float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
+
+    void begin(uint8_t accel_config = MPU6050_ACCEL_FS_2, uint8_t gyro_config = MPU6050_GYRO_FS_500);
+
+    float set_aSensitivity(uint8_t accel_config);
+    float set_gSensitivity(uint8_t gyro_config);
 
   public:
     Imu(uint8_t port = 0x6);
     unsigned long read_timer(void);
+
+    float get_aSensitivity(void);
+    float get_aSensitivity_si(void);
+    float get_gSensitivity(void);
+    float get_gSensitivity_si(void);
 
     float get_roll(void);
     float get_pitch(void);

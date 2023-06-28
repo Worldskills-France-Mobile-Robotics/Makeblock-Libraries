@@ -18,19 +18,10 @@ unsigned long Imu::read_timer(void){
     return timer;
 }
 
-float Imu::get_roll(void)  {return ypr[2];}
-float Imu::get_pitch(void) {return ypr[1];}
-float Imu::get_yaw(void)   {return ypr[0];}
+void Imu::begin(uint8_t accel_config, uint8_t gyro_config) {
+    aSensitivity = set_aSensitivity(accel_config);
+    gSensitivity = set_gSensitivity(gyro_config);
 
-float Imu::get_angular_velocity_x(void) {return gyro.x / (65.5 * 180 / M_PI);}
-float Imu::get_angular_velocity_y(void) {return gyro.y / (65.5 * 180 / M_PI);}
-float Imu::get_angular_velocity_z(void) {return gyro.z / (65.5 * 180 / M_PI);}
-
-float Imu::get_linear_acceleration_x(void) {return aaReal.x / 16384.0;}
-float Imu::get_linear_acceleration_y(void) {return aaReal.y / 16384.0;}
-float Imu::get_linear_acceleration_z(void) {return aaReal.z / 16384.0;}
-
-void Imu::setup(void){
     Wire.begin();
 
     mpu.initialize();
@@ -63,19 +54,112 @@ void Imu::setup(void){
         // Serial.println(F(")"));
         dmpReady = false;
     }
+}
 
+float Imu::get_aSensitivity(void){
+    return aSensitivity;
+}
+
+float Imu::get_aSensitivity_si(void){
+    return aSensitivity_si;
+}
+
+float Imu::set_aSensitivity(uint8_t accel_config){
+    switch (accel_config) {
+        case MPU6050_ACCEL_FS_2:
+            aSensitivity = 16384.0;
+            break;
+        
+        case MPU6050_ACCEL_FS_4:
+            aSensitivity = 8192.0;
+            break;
+
+        case MPU6050_ACCEL_FS_8:
+            aSensitivity = 4096.0;
+            break;
+
+        case MPU6050_ACCEL_FS_16:
+            aSensitivity = 2048.0;
+            break;
+
+        default:
+            aSensitivity = 16384.0;
+            break;
+    }
+
+    aSensitivity_si = aSensitivity / 9.8; // LSB/g to LSB/ms-2 
+
+    return aSensitivity;
+}
+
+float Imu::get_gSensitivity(void){
+    return gSensitivity;
+}
+
+float Imu::get_gSensitivity_si(void){
+    return gSensitivity_si;
+}
+
+float Imu::set_gSensitivity(uint8_t gyro_config){
+    switch (gyro_config)
+    {
+        case MPU6050_GYRO_FS_250:
+            gSensitivity = 131.0;
+            break;
+        
+        case MPU6050_GYRO_FS_500:
+            gSensitivity = 65.5;
+            break;
+
+        case MPU6050_GYRO_FS_1000:
+            gSensitivity = 32.8;
+            break;
+
+        case MPU6050_GYRO_FS_2000:
+            gSensitivity = 16.4;
+            break;
+
+        default:
+            gSensitivity = 65.5;
+            break;
+    }
+
+    gSensitivity_si = gSensitivity * 180 / M_PI; // LSB/°/s to LSB / rad / s 
+
+    return gSensitivity;
+}
+
+float Imu::get_roll(void)  {return ypr[2];}
+float Imu::get_pitch(void) {return ypr[1];}
+float Imu::get_yaw(void)   {return ypr[0];}
+
+float Imu::get_angular_velocity_x(void) {return gyro.x / get_gSensitivity_si();}
+float Imu::get_angular_velocity_y(void) {return gyro.y / get_gSensitivity_si();}
+float Imu::get_angular_velocity_z(void) {return gyro.z / get_gSensitivity_si();}
+
+float Imu::get_linear_acceleration_x(void) {return aaReal.x / get_aSensitivity_si();}
+float Imu::get_linear_acceleration_y(void) {return aaReal.y / get_aSensitivity_si();}
+float Imu::get_linear_acceleration_z(void) {return aaReal.z / get_aSensitivity_si();}
+
+void Imu::setup(void){
+    begin(MPU6050_ACCEL_FS_2, MPU6050_GYRO_FS_500);
 }
 
 bool Imu::loop(void) {
     bool ret = false;
     if (!dmpReady) return ret;
     // read a packet from FIFO
-    if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) {
+    if (mpu.dmpGetCurrentFIFOPacket(lastPacket)) {
         ret = true;
         timer = millis();
-        mpu.dmpGetQuaternion(&q, fifoBuffer);
-        mpu.dmpGetAccel(&aa, fifoBuffer);
-        mpu.dmpGetGyro(&gyro, fifoBuffer);
+        // Get the Quaternion from sensor
+        mpu.dmpGetQuaternion(&q, lastPacket);
+        // Normalize the quaternium we need this
+        // For the equations to be valid
+        q.normalize();
+
+        mpu.dmpGetAccel(&aa, lastPacket);
+        mpu.dmpGetGyro(&gyro, lastPacket);
         mpu.dmpGetGravity(&gravity, &q);
         mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
         mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
