@@ -1151,17 +1151,26 @@ void readSensor(uint8_t device)
         case IMU:
         {
             if(NULL != my_imu){
-                sendFloat(my_imu->get_roll());
-                sendFloat(my_imu->get_pitch());
-                sendFloat(my_imu->get_yaw());
+                value = (float)my_imu->get_roll();
+                sendFloat(value);
+                value = (float)my_imu->get_pitch();
+                sendFloat(value);
+                value = (float)my_imu->get_yaw();
+                sendFloat(value);
 
-                sendFloat(my_imu->get_angular_velocity_x());
-                sendFloat(my_imu->get_angular_velocity_y());
-                sendFloat(my_imu->get_angular_velocity_z());
+                value = (float)my_imu->get_angular_velocity_x();
+                sendFloat(value);
+                value = (float)my_imu->get_angular_velocity_y();
+                sendFloat(value);
+                value = (float)my_imu->get_angular_velocity_z();
+                sendFloat(value);
 
-                sendFloat(my_imu->get_linear_acceleration_x());
-                sendFloat(my_imu->get_linear_acceleration_y());
-                sendFloat(my_imu->get_linear_acceleration_z());
+                value = (float)my_imu->get_linear_acceleration_x();
+                sendFloat(value);
+                value = (float)my_imu->get_linear_acceleration_y();
+                sendFloat(value);
+                value = (float)my_imu->get_linear_acceleration_z();
+                sendFloat(value);
             }
 
         }
