@@ -269,7 +269,7 @@ static const unsigned char dmpMemory[MPU6050_DMP_CODE_SIZE] PROGMEM = {
 #endif
 
 // I Simplified this:
-uint8_t MPU6050_6Axis_MotionApps20::dmpInitialize() {
+uint8_t MPU6050::dmpInitialize(uint8_t accel_config, uint8_t gyro_config) {
 	// reset device
 	DEBUG_PRINTLN(F("\n\nResetting MPU6050..."));
 	reset();
@@ -309,7 +309,8 @@ uint8_t MPU6050_6Axis_MotionApps20::dmpInitialize() {
 	resetI2CMaster();
 	delay(20);
 	DEBUG_PRINTLN(F("Setting clock source to Z Gyro..."));
-	setClockSource(MPU6050_CLOCK_PLL_ZGYRO);
+	// setClockSource(MPU6050_CLOCK_PLL_ZGYRO);
+	setClockSource(MPU6050_CLOCK_PLL_XGYRO);
 
 	DEBUG_PRINTLN(F("Setting DMP and FIFO_OFLOW interrupts enabled..."));
 	setIntEnabled(1<<MPU6050_INTERRUPT_FIFO_OFLOW_BIT|1<<MPU6050_INTERRUPT_DMP_INT_BIT);
@@ -325,7 +326,8 @@ uint8_t MPU6050_6Axis_MotionApps20::dmpInitialize() {
 
 	DEBUG_PRINTLN(F("Setting gyro sensitivity to +/- 2000 deg/sec..."));
 	// setFullScaleGyroRange(MPU6050_GYRO_FS_2000);
-	setFullScaleGyroRange(MPU6050_GYRO_FS_500);
+	setFullScaleGyroRange(gyro_config);
+	setFullScaleAccelRange(accel_config);
 
 	// load DMP code into memory banks
 	DEBUG_PRINT(F("Writing DMP code to MPU memory banks ("));
