@@ -1,8 +1,8 @@
 /*************************************************************************
 * File Name          : Ruediger2.ino
 * Author             : flochre
-* Version            : 0.5
-* Date               : 22/06/2023
+* Version            : 0.6
+* Date               : 26/06/2023
 * Description        : Firmware for Makeblock Electronic modules with Scratch.  
 * License            : CC-BY-SA 3.0
 * Copyright (C) 2013 - 2016 Maker Works Technology Co., Ltd. All right reserved.
@@ -14,6 +14,7 @@
 * flochre          2023/01/31     0.3              Bump to 0.3 with changes in the repo structure
 * flochre          2023/05/09     0.4              Add Ultrasonic sensor
 * flochre          2023/06/22     0.5              Ultrasonic sensor working with the serial_megapi
+* flochre          2023/06/26     0.6              Update the IMU to use onboard Digital Motion Processor(DMP)
 **************************************************************************/
 #include <Arduino.h>
 #include <MeMegaPi.h>
@@ -26,13 +27,9 @@
 MeMegaPiDCMotor dc;
 MeStepperOnBoard steppers[4] = {MeStepperOnBoard(1),MeStepperOnBoard(2),MeStepperOnBoard(3),MeStepperOnBoard(4)};
 
-MeUltrasonicSensor *us = NULL;     //PORT_7
+MeUltrasonicSensor *us = NULL;     // PORT_7
 
-MeUltrasonicSensor * my_uss[4];
-// MeUltrasonicSensor *my_uss_1 = NULL;     //PORT_5
-// MeUltrasonicSensor *my_uss_2 = NULL;     //PORT_6
-// MeUltrasonicSensor *my_uss_3 = NULL;     //PORT_7
-// MeUltrasonicSensor *my_uss_4 = NULL;     //PORT_8
+MeUltrasonicSensor * my_uss[4];    // PORT_5 PORT_6 PORT_7 PORT_8
 Imu *my_imu = NULL;
 
 MeEncoderOnBoard encoders[4];
@@ -138,7 +135,7 @@ boolean blink_flag = false;
 int16_t slot_1 = 0;
 int16_t slot_2 = 0;
 
-String mVersion = "0.5";
+String mVersion = "0.6";
 //////////////////////////////////////////////////////////////////////////////////////
 float RELAX_ANGLE = -1;                    //Natural balance angle,should be adjustment according to your own car
 
@@ -1154,17 +1151,26 @@ void readSensor(uint8_t device)
         case IMU:
         {
             if(NULL != my_imu){
-                sendFloat(my_imu->get_roll());
-                sendFloat(my_imu->get_pitch());
-                sendFloat(my_imu->get_yaw());
+                value = (float)my_imu->get_roll();
+                sendFloat(value);
+                value = (float)my_imu->get_pitch();
+                sendFloat(value);
+                value = (float)my_imu->get_yaw();
+                sendFloat(value);
 
-                sendFloat(my_imu->get_angular_velocity_x());
-                sendFloat(my_imu->get_angular_velocity_y());
-                sendFloat(my_imu->get_angular_velocity_z());
+                value = (float)my_imu->get_angular_velocity_x();
+                sendFloat(value);
+                value = (float)my_imu->get_angular_velocity_y();
+                sendFloat(value);
+                value = (float)my_imu->get_angular_velocity_z();
+                sendFloat(value);
 
-                sendFloat(my_imu->get_linear_acceleration_x());
-                sendFloat(my_imu->get_linear_acceleration_y());
-                sendFloat(my_imu->get_linear_acceleration_z());
+                value = (float)my_imu->get_linear_acceleration_x();
+                sendFloat(value);
+                value = (float)my_imu->get_linear_acceleration_y();
+                sendFloat(value);
+                value = (float)my_imu->get_linear_acceleration_z();
+                sendFloat(value);
             }
 
         }
@@ -1478,22 +1484,23 @@ void loop(){
     }
 
     if (NULL != my_imu && millis() >= my_imu->read_timer() + TIMER_IMU){
-      my_imu->loop();
-      // the readSensor fonction will send the data over serial
-      readSensor(IMU);
-      writeEnd();
-      // Serial.println(my_imu->get_yaw() * 180 / 3.14);
+      if(my_imu->loop()){
+        // the readSensor fonction will send the data over serial
+        readSensor(IMU);
+        writeEnd();
+        // Serial.println(my_imu->get_yaw() * 180 / 3.14);      
+      }
     }
 
     for(int i=0;i<4;i++){
-        if (NULL != my_uss[i] && millis() >= timer_uss[i] + TIMER_USS){
-            timer_uss[i] = millis();
-            // the readSensor fonction will send the data over serial
-            uint8_t port = i + 4 + 1;
-            command_index = (uint8_t)((port << 4) + (ULTRASONIC_SENSOR & 0xf));
-            readSensor(ULTRASONIC_SENSOR_P5 + i);
-            writeEnd();
-        }
+      if (NULL != my_uss[i] && millis() >= timer_uss[i] + TIMER_USS){
+        timer_uss[i] = millis();
+        // the readSensor fonction will send the data over serial
+        uint8_t port = i + 4 + 1;
+        command_index = (uint8_t)((port << 4) + (ULTRASONIC_SENSOR & 0xf));
+        readSensor(ULTRASONIC_SENSOR_P5 + i);
+        writeEnd();
+      }
     }
 
     readSerial();
